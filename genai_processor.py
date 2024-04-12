@@ -1,13 +1,11 @@
-import openai
-import google.generativeai as gemini
+import google.generativeai as genai
 import streamlit as st
 
 
 
-class LanguageModelProcessor:
-    def __init__(self, google_api_key, openai_api_key):
-        self.google_api_key = google_api_key
-        self.openai_api_key = openai_api_key
+class GeminiProcessor:
+    def __init__(self):
+        self.google_api_key = st.secrets["google_api_key"]
         self.settings = {
             "conversation_context": "",
             "formality": "Balanced",
@@ -16,23 +14,14 @@ class LanguageModelProcessor:
             "highlight_mistakes_on": False,
             "practice_language": "",
             "learner_level": "",
-            "llm_choice": "",
-            "custom_api_key": "",
         }
-
 
 
     def set_settings(self, settings_dict):
         for key, value in settings_dict.items():
             if key in self.settings:
                 self.settings[key] = value
-        
-        self.google_api_key = (
-            self.settings["custom_api_key"] if self.settings["custom_api_key"] else self.google_api_key
-        )
-        self.openai_api_key = (
-            self.settings["custom_api_key"] if self.settings["custom_api_key"] else self.openai_api_key
-        )
+
 
 
     def create_convo_prompt(self, vocab):
@@ -75,129 +64,8 @@ class LanguageModelProcessor:
 
         {translation_request}
         """
-
         return prompt
 
-
-    def create_compre_prompt(self, text):
-        learner_level = self.settings["learner_level"]
-        practice_language = self.settings["practice_language"]
-        # Tailor the prompt based on the learner level
-        level_prompt = {
-            "A1 Beginner": "very simple English",
-            "A2 Pre-intermediate": "simple English",
-            "B1 Intermediate": "moderately simple English",
-            "B2 Upper-Intermediate": "intermediate English",
-            "C1 Advanced": "advanced English",
-            "C2 Mastery": "highly advanced English",
-        }.get(
-            learner_level
-        ) 
-
-        prompt = f"Simplify this text into {level_prompt} for {practice_language} language learners: {text}"
-
-        return prompt
-
-
-
-class ChatGPTProcessor(LanguageModelProcessor):
-    def __init__(self, google_api_key, openai_api_key):
-        super().__init__(google_api_key, openai_api_key)
-        openai.api_key = self.openai_api_key
-
-
-    def generate_convo(
-        self, 
-        prompt,
-        temperature=0.7,
-        max_tokens=100,
-        top_p=1.0,
-        frequency_penalty=0.0,
-        presence_penalty=0.0,
-        ):
-        """
-        Uses ChatGPT to generate a response.
-
-        Parameters:
-        - text (str): The text to be simplified.
-        - temperature (float): Controls randomness in the output.
-        - max_tokens (int): The maximum number of tokens to generate.
-        - top_p (float): Nucleus sampling parameter alternative to temprature.
-        - frequency_penalty (float): Number between -2.0 and 2.0. Positive values penalize new tokens based on their existing frequency in the text so far, decreasing the model's likelihood to repeat the same line verbatim.
-        - presence_penalty (float): Number between -2.0 and 2.0. Positive values penalize new tokens based on whether they appear in the text so far, increasing the model's likelihood to talk about new topics.
-
-        Returns:
-        - str: The simplified text.
-        """
-
-        try:
-            response = openai.chat.completions.create(
-                model="gpt-3.5-turbo",
-                messages=[
-                    {"role": "system", "content": "You are a helpful assistant."},
-                    {"role": "user", "content": prompt},
-                ],
-                temperature=temperature,
-                max_tokens=max_tokens,
-                top_p=top_p,
-                frequency_penalty=frequency_penalty,
-                presence_penalty=presence_penalty,
-            )
-
-            return response.choices[0].message.content
-        
-        except Exception as e:
-            print(f"Error in generating conversation: {e}")
-
-
-    def simplify_text(
-        self,
-        prompt,
-        temperature=0.7,
-        max_tokens=100,
-        top_p=1.0,
-        frequency_penalty=0.0,
-        presence_penalty=0.0,
-    ):
-        """
-        Uses ChatGPT to simplify the given text to make it more comprehensible for English language learners, taking into account the learner's proficiency level.
-
-        Parameters:
-        - text (str): The text to be simplified.
-        - learner_level (str): The proficiency level of the learner (e.g., "A1 Beginner", "B2 Upper-Intermediate").
-        - temperature (float): Controls randomness in the output.
-        - max_tokens (int): The maximum number of tokens to generate.
-        - top_p (float): Nucleus sampling parameter alternative to temprature.
-        - frequency_penalty (float): Number between -2.0 and 2.0. Positive values penalize new tokens based on their existing frequency in the text so far, decreasing the model's likelihood to repeat the same line verbatim.
-        - presence_penalty (float): Number between -2.0 and 2.0. Positive values penalize new tokens based on whether they appear in the text so far, increasing the model's likelihood to talk about new topics.
-
-        Returns:
-        - str: The simplified text.
-        """
-
-        try:
-            response = openai.chat.completions.create(
-                model="gpt-3.5-turbo",
-                messages=[
-                    {"role": "system", "content": "You are a helpful assistant."},
-                    {"role": "user", "content": prompt},
-                ],
-                temperature=temperature,
-                max_tokens=max_tokens,
-                top_p=top_p,
-                frequency_penalty=frequency_penalty,
-                presence_penalty=presence_penalty,
-            )
-            return response.choices[0].message.content
-        
-        except Exception as e:
-            print(f"Error in simplifying text: {e}")
-
-
-class GeminiProcessor(LanguageModelProcessor):
-    def __init__(self, google_api_key, openai_api_key):
-        super().__init__(google_api_key, openai_api_key)
-        gemini.configure(api_key=self.google_api_key)
 
 
     def generate_convo(self, prompt):
@@ -206,18 +74,3 @@ class GeminiProcessor(LanguageModelProcessor):
 
         return response.text
 
-
-    def clean_response(self, text):
-        text = text.replace("*", "").replace("_", "").replace(":", " :").replace(";", " ;")  # Escape potential formatting
-        return text
-
-
-    def simplify_text(
-        self,
-        prompt,
-    ):
-        model = gemini.GenerativeModel("gemini-pro")
-        response = model.generate_content(prompt)
-        cleaned_response = self.clean_response(response.text)
-
-        return cleaned_response
