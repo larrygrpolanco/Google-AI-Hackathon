@@ -45,18 +45,35 @@ if target_language:  # if practice_language is not empty
         vocab = st.text_input(
             "Enter the word or words you want to see used in a conversation:",
             placeholder="Vocabulary",
-            help="Additional options in the sidebar located at the top left",
+            help="Additional options in the extras tab.",
         )
 
     with tab2:  # Extra settings
+
         conversation_context = st.text_area(
             "Context",
             placeholder="Ordering food at a restaurant in outer space.",
             help="Give a context to focus the conversation, e.g., ordering at a restaurant, asking for directions.",
         )
+        conversation_context = (
+            "generic context"
+            if not conversation_context
+            else conversation_context
+        )
 
         col1, col2 = st.columns(2)
-        give_translation = col1.toggle("English Translations")
+        translation_language = "English"
+        translation_language = col1.text_input(
+            "Translation Language",
+            placeholder="Translation Language",
+            label_visibility="collapsed",
+        )
+        translation_language = (
+            "English" if not translation_language else translation_language
+        )
+
+        give_translation = col1.toggle(f"{translation_language} Translation")
+
         formality = col2.select_slider(
             "Formality",
             [
@@ -69,11 +86,11 @@ if target_language:  # if practice_language is not empty
             value="Balanced",
         )
 
-    # Updated to reflect the current settings
     current_settings = {
         "conversation_context": conversation_context,
         "formality": formality,
         "give_translation": give_translation,
+        "translation_language": translation_language,
         "target_language": target_language,
         "learner_level": learner_level,
     }
@@ -81,35 +98,39 @@ if target_language:  # if practice_language is not empty
     if "responses" not in st.session_state:
         st.session_state["responses"] = []
 
-    if "find_clicked" not in st.session_state:
-        st.session_state["find_clicked"] = False
+    if "new_clicked" not in st.session_state:
+        st.session_state["new_clicked"] = False
 
     col1, col2, col3, col4 = st.columns(4)
 
-    if col1.button("Find Conversation"):
-        st.session_state["find_clicked"] = True
+    if col1.button("New Conversation"):
+        st.session_state["new_clicked"] = True
 
     if col4.button("Clear Conversations"):
-        st.session_state["responses"] = []  # Reset the list of responses
-        st.session_state["find_clicked"] = False
+        st.session_state["responses"] = []
+        st.session_state["new_clicked"] = False
+        vocab = None
 
-    if st.session_state["find_clicked"]:
+    if st.session_state["new_clicked"] or vocab:
         gemini = GeminiProcessor()
         gemini.set_settings(current_settings)
-
         with st.spinner("Creating your dialogue..."):
-            response = gemini.generate_convo(vocab)
+            try:
+                response = gemini.generate_convo(vocab)
+                st.session_state["responses"].insert(0, response)
 
-            st.session_state["responses"].insert(0, response)
+                max_responses = 5  # Limit the number of stored responses
+                if len(st.session_state["responses"]) > max_responses:
+                    st.session_state["responses"] = st.session_state["responses"][
+                        :max_responses
+                    ]
+            except ValueError as e:
+                st.error(
+                    "Sorry, we're having some trouble finding the perfect conversation, please try again."
+                )
+                print("Error generating conversation:", str(e))
 
-            max_responses = 5
-            if len(st.session_state["responses"]) > max_responses:
-                # Remove the oldest response(s) to maintain only a max number of responses
-                st.session_state["responses"] = st.session_state["responses"][
-                    :max_responses
-                ]
-
-        st.session_state["find_clicked"] = False
+            st.session_state["new_clicked"] = False
 
     for response in st.session_state["responses"]:
         st.info(response)
