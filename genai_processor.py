@@ -48,7 +48,7 @@ class GeminiProcessor:
 
         Bold the target vocabulary word '{vocab}' each time it appears in the dialogue.
 
-        Always include a line break between each character's dialogue to clearly distinguish their responses.
+        Formatting: Always include a line break between each character's dialogue to clearly distinguish their responses.
         """
         return prompt
 
