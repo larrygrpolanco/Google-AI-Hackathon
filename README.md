@@ -2,7 +2,7 @@
 
 Google AI Hackathon 2024 Project: Conversation Dictionary
 
-Welcome to the Conversation Dictionary, a dynamic tool designed to help language learners and researchers see vocabulary in action. Whether you’re a beginner or mastering a language, this tool allows you to input any word and see it used within a realistic conversation. Simply choose the language you're learning, your proficiency level, and type in the word you wish to explore.
+Welcome to the Conversation Dictionary, a dynamic tool designed to help language learners see vocabulary in action. Whether you’re a beginner or mastering a language, this tool allows you to input any word and see it used within a realistic conversation. Simply choose the language you're learning, your proficiency level, and type in the word you wish to explore.
 
 Here's how it works:
 
